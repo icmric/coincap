@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:coincap/pages/details_page.dart';
 import 'package:coincap/services/http_services.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -11,6 +12,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String _SelectedCoin = "bitcoin";
   double? _deviceHeight, _deviceWidth;
   HTTPService? _http;
   @override
@@ -41,7 +43,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _selectedCoinDropdown() {
-    List<String> _coins = ["bitcoin"];
+    String selectedValue = "bitcoin";
+    List<String> _coins = [
+      "bitcoin",
+      "ethereum",
+      "tether",
+      "cardano",
+      "ripple",
+    ];
+
     List<DropdownMenuItem<String>> _items = _coins
         .map((e) => DropdownMenuItem(
               value: e,
@@ -55,9 +65,13 @@ class _HomePageState extends State<HomePage> {
             ))
         .toList();
     return DropdownButton(
-      value: _coins.first,
+      value: _SelectedCoin,
       items: _items,
-      onChanged: (_value) {},
+      onChanged: (dynamic _value) {
+        setState(() {
+          _SelectedCoin = _value;
+        });
+      },
       dropdownColor: const Color.fromRGBO(
         83,
         86,
@@ -75,19 +89,33 @@ class _HomePageState extends State<HomePage> {
 
   Widget _dataWidgets() {
     return FutureBuilder(
-      future: _http!.get("/coins/bitcoin"),
+      future: _http!.get("/coins/" + _SelectedCoin),
       builder: (BuildContext _context, AsyncSnapshot _snapshot) {
         if (_snapshot.hasData) {
           Map _data = jsonDecode(_snapshot.data.toString());
           num _audprice = _data["market_data"]["current_price"]["aud"];
           num _change24h = _data["market_data"]["price_change_percentage_24h"];
+          Map _exchangeRates = _data["market_data"]["current_price"];
           return Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              GestureDetector(
+                  onDoubleTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext _context) {
+                          return DetailsPage(rates: _exchangeRates);
+                        },
+                      ),
+                    );
+                  },
+                  child: _coinImageWidget(_data["image"]["large"])),
               _currentPriceWidget(_audprice),
-              _percentageChangeWidget(_change24h)
+              _percentageChangeWidget(_change24h),
+              _descriptionCardWidget(_data["description"]["en"]),
             ],
           );
         } else {
@@ -124,6 +152,36 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _coinImageWidget(String _imgURL) {
-    return Scaffold();
+    return Container(
+      padding: EdgeInsets.symmetric(
+        vertical: _deviceHeight! * 0.02,
+      ),
+      height: _deviceHeight! * 0.15,
+      width: _deviceWidth! * 0.15,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage(_imgURL),
+        ),
+      ),
+    );
+  }
+
+  Widget _descriptionCardWidget(String _description) {
+    return Container(
+      height: _deviceHeight! * 0.45,
+      width: _deviceWidth! * 0.90,
+      margin: EdgeInsets.symmetric(
+        vertical: _deviceHeight! * 0.05,
+      ),
+      padding: EdgeInsets.symmetric(
+        vertical: _deviceHeight! * 0.01,
+        horizontal: _deviceHeight! * 0.01,
+      ),
+      color: const Color.fromRGBO(83, 88, 206, 1.0),
+      child: Text(
+        _description,
+        style: const TextStyle(color: Colors.white),
+      ),
+    );
   }
 }
