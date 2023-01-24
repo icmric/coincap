@@ -10,6 +10,7 @@ import 'package:get_it/get_it.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
       await loadConfig();
+      registerHTTPService(); 
   runApp(const MyApp());
 }
 Future<void> loadConfig() async {
